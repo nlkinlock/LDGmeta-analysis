@@ -8,6 +8,8 @@ library(polycor)
 library(car)
 library(metafor)
 library(ggplot2)
+library(plyr)
+library(Rmisc)
 
 gs_ls() # load data sheet directly from Google Spreadsheet
 LDG_data <- gs_title("Coding Datasheet")  # load the correct sheet within spreadsheet

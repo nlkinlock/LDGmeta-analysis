@@ -20,14 +20,14 @@ hist(residuals.rma(global.slope.init))
 global.init <- rma(yi = rz, vi = VarRz, data = dat)
 summary(global.init)
 
-global.inf <- influence(global.init)
-plot(global.inf)
-outliers <- which(global.inf$is.infl == TRUE)
-dat[outliers, ]
-subset <- dat[-outliers, ]
-
-global <- rma(yi = rz, vi = VarRz, data = subset)
-summary(global)
+# outlier tests
+# global.inf <- influence(global.init)
+# plot(global.inf)
+# outliers <- which(global.inf$is.infl == TRUE)
+# dat[outliers, ]
+# subset <- dat[-outliers, ]
+# global <- rma(yi = rz, vi = VarRz, data = subset)
+# summary(global)
 
 #
 # ANIMALIA
@@ -130,16 +130,6 @@ summary(mods.a2)
 summary(mods.a3)
 summary(mods.a4)
 
-# without outliers
-mods.out <- rma.mv(yi = rz, V = VarRz, mods = ~ kingdom + realm  + hemisphere + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, random = rand, data = subset)
-mods.out2 <- rma.mv(yi = rz, V = VarRz, mods = ~ kingdom + realm + hemisphere + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, random = rand2, data = subset)
-mods.out3 <- rma.mv(yi = rz, V = VarRz, mods = ~ kingdom + realm + hemisphere + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, random = rand3, data = subset)
-mods.out4 <- rma.mv(yi = rz, V = VarRz, mods = ~ kingdom + realm + hemisphere + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, random = rand4, data = subset)
-summary(mods.out)
-summary(mods.out2)
-summary(mods.out3)
-summary(mods.out4)
-paste("model rand w/o outliers: ", round(aicc(mods.out), digits = 2), "model rand2 w/o outliers: ", round(aicc(mods.out2), digits = 2), "model rand3 w/o outliers: ", round(aicc(mods.out3), digits = 2), "model rand4 w/o outliers: ", round(aicc(mods.out4), digits = 2))
 
 # model selection
 #
@@ -147,9 +137,9 @@ paste("model rand w/o outliers: ", round(aicc(mods.out), digits = 2), "model ran
 # fit function included so this is a meta regression
 # NOTE - takes several hours to run
 # determine the number of reasonable candidate models for glmulti to run through using method "d"
-candidateset <- glmulti(rz ~ kingdom + realm + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat, level = 1, method = "d", fitfunction = rma.glmulti, crit = "aicc")
+candidateset <- glmulti(rz ~ kingdom + realm + longitude_range + longitude_midpoint + I(longitude_midpoint^2) + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat, level = 1, method = "d", fitfunction = rma.glmulti, crit = "aicc")
 # run glmulti with meta regression function
-models <- glmulti(rz ~ kingdom + realm + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat, level = 1, method = "h", fitfunction = rma.glmulti, crit = "aicc", confsetsize = candidateset)
+models <- glmulti(rz ~ kingdom + realm + longitude_range + longitude_midpoint + I(longitude_midpoint^2) + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat, level = 1, method = "h", fitfunction = rma.glmulti, crit = "aicc", confsetsize = candidateset)
 print(models)
 # AICc and weights of models within 5 units of the best model
 rank.models <- weightable(models)
@@ -167,9 +157,9 @@ rank.models
 weights <- round(coef.glmulti(models, select = nrow(rank.models), icmethod = "Burnham"), 5)
 weights <- weights[, c(1, 4, 5)]
 weights
-all.weights <- weights[c(1, 5, 6, 7, 8, 10, 12), 2]
+all.weights <- weights[c(1, 5, 6, 7, 8, 9, 11, 13), 2]
 names(all.weights) <- NULL
-vars <- c("Kingdom", "Longitude range", "Latitude range", "Longitude midpoint", "Diversity", "Realm", "Latitude midpoint")
+vars <- c("Kingdom", "Longitude range", "Diversity", "Latitude range", "Longitude midpoint", "Longitude midpoint^2", "Realm", "Latitude midpoint")
 all.weights <- data.frame(Covariates = vars, Importance = all.weights)
 all.weights
 
@@ -178,7 +168,7 @@ r2c <- c()
 for (i in 1:nrow(rank.models)) {
   fixrand <- (models@objects[[i]]$tau2 + sum(models@objects[[i]]$sigma2))  # tau (between groups variance) is from fixed effects and sigma2 is from each random effect
   wi <- weights.rma.mv(models@objects[[i]])  # inverse of the sampling variance
-  s2 <- ((models@objects[[i]]$k - 1) * sum(wi)) / (sum(wi)^2  - sum(wi^2))  # typical within study variance of the effect size from Higgins and Thompson (2002)
+  s2 <- ((models@objects[[i]]$k - 1) * sum(wi, na.rm = TRUE)) / (sum(wi, na.rm = TRUE)^2  - sum(wi^2, na.rm = TRUE))
   r2c[i] <- fixrand / (fixrand + s2)
 }
 r2c
@@ -194,8 +184,8 @@ cat("Multiple meta-regression coefficients of rz", models.output.coef, file = "m
 # Meta regression: Terrestrial ---------------------------------------
 
 # model selection
-ter.candidateset <- glmulti(rz ~ kingdom + factor(trophic_position) + factor(habitat) + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat.ter, level = 1, method = "d", fitfunction = rma.glmulti)
-ter.models <- glmulti(rz ~ kingdom + factor(trophic_position) + factor(habitat) + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat.ter, level = 1, method = "h", fitfunction = rma.glmulti, crit = "aicc", confsetsize = ter.candidateset)
+ter.candidateset <- glmulti(rz ~ kingdom + factor(trophic_position) + factor(habitat) + longitude_range + longitude_midpoint + I(longitude_midpoint^2) + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat.ter, level = 1, method = "d", fitfunction = rma.glmulti)
+ter.models <- glmulti(rz ~ kingdom + factor(trophic_position) + factor(habitat) + longitude_range + longitude_midpoint + I(longitude_midpoint^2) + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat.ter, level = 1, method = "h", fitfunction = rma.glmulti, crit = "aicc", confsetsize = ter.candidateset)
 print(ter.models)
 ter.rank <- weightable(ter.models)
 ter.rank <- ter.rank[ter.rank$aicc <= min(ter.rank$aicc) + 2, ]
@@ -207,9 +197,9 @@ terweights <- terweights[, c(1, 4, 5)]
 terweights
 terweights[,1] - terweights[,3]
 terweights[,1] + terweights[,3]
-ter.weights <- terweights[c(1, 3, 4, 6, 8, 9), 2]
+ter.weights <- terweights[c(1, 2, 4, 5, 8, 9, 10), 2]
 names(ter.weights) <- NULL
-ter.vars <- c("Kingdom", "Longitude range", "Habitat", "Longitude midpoint", "Latitude range", "Latitude midpoint")
+ter.vars <- c("Kingdom", "Longitude range", "Longitude midpoint", "Habitat", "Longitude midpoint^2", "Latitude range", "Latitude midpoint")
 ter.weights <- data.frame(Covariates = ter.vars, Importance = ter.weights)
 ter.weights
 
@@ -218,7 +208,7 @@ ter.r2c <- c()
 for (i in 1:nrow(ter.rank)) {
   fixrand <- (ter.models@objects[[i]]$tau2 + sum(ter.models@objects[[i]]$sigma2))
   wi <- weights.rma.mv(ter.models@objects[[i]])
-  s2 <- ((ter.models@objects[[i]]$k - 1) * sum(wi)) / (sum(wi)^2  - sum(wi^2))
+  s2 <- ((ter.models@objects[[i]]$k - 1) * sum(wi, na.rm = TRUE)) / (sum(wi, na.rm = TRUE)^2  - sum(wi^2, na.rm = TRUE))
   ter.r2c[i] <- fixrand / (fixrand + s2)
 }
 ter.r2c
@@ -234,8 +224,8 @@ cat("Multiple meta-regression coefficients of rz (Terrestrial)", ter.output.coef
 # Meta regression: Marine ---------------------------------------
 
 # model selection
-mar.candidateset <- glmulti(rz ~ factor(kingdom) + factor(trophic_position) + factor(habitat) + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat.mar, level = 1, method = "d", fitfunction = rma.glmulti)
-mar.models <- glmulti(rz ~ factor(kingdom) + factor(trophic_position) + factor(habitat) + longitude_range + longitude_midpoint + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat.mar, level = 1, method = "h", fitfunction = rma.glmulti, crit = "aicc", confsetsize = mar.candidateset)
+mar.candidateset <- glmulti(rz ~ factor(kingdom) + factor(trophic_position) + factor(habitat) + longitude_range + longitude_midpoint + I(longitude_midpoint^2) + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat.mar, level = 1, method = "d", fitfunction = rma.glmulti)
+mar.models <- glmulti(rz ~ factor(kingdom) + factor(trophic_position) + factor(habitat) + longitude_range + longitude_midpoint + I(longitude_midpoint^2) + latitude_range + latitude_midpoint + diversity, V = "VarRz", random = "rand2", data = dat.mar, level = 1, method = "h", fitfunction = rma.glmulti, crit = "aicc", confsetsize = mar.candidateset)
 print(mar.models)
 mar.rank <- weightable(mar.models)
 mar.rank <- mar.rank[mar.rank$aicc <= min(mar.rank$aicc) + 2, ]
@@ -247,9 +237,9 @@ marweights <- marweights[, c(1, 4, 5)]
 marweights
 marweights[,1] - marweights[,3]
 marweights[,1] + marweights[,3]
-mar.weights <- marweights[c(1, 2, 5, 6, 7, 9), 2]
+mar.weights <- marweights[c(1, 2, 3, 4, 7, 8, 10), 2]
 names(mar.weights) <- NULL
-mar.vars <- c("Latitude range", "Kingdom", "Longitude range", "Longitude midpoint", "Diversity", "Latitude midpoint")
+mar.vars <- c("Longitude midpoint", "Latitude range", "Longitude range", "Kingdom", "Longitude midpoint^2", "Diversity", "Latitude midpoint")
 mar.weights <- data.frame(Covariates = mar.vars, Importance = mar.weights)
 mar.weights
 
@@ -258,7 +248,7 @@ mar.r2c <- c()
 for (i in 1:nrow(mar.rank)) {
   fixrand <- (mar.models@objects[[i]]$tau2 + sum(mar.models@objects[[i]]$sigma2))
   wi <- weights.rma.mv(mar.models@objects[[i]])
-  s2 <- ((mar.models@objects[[i]]$k - 1) * sum(wi)) / (sum(wi)^2  - sum(wi^2))
+  s2 <- ((mar.models@objects[[i]]$k - 1) * sum(wi, na.rm = TRUE)) / (sum(wi, na.rm = TRUE)^2  - sum(wi^2, na.rm = TRUE))
   mar.r2c[i] <- fixrand / (fixrand + s2)
 }
 mar.r2c
