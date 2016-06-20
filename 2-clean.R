@@ -80,6 +80,10 @@ dat[ranges, "diversity"] <- "gamma"
 multikingdom <- which(dat$kingdom == "multiple")
 dat <- dat[-multikingdom, ]
 
+# remove studies with too few species (less than 10)
+species <- which(dat$measure_of_richness != "index" & dat$total_taxonomic_richness < 10)
+dat <- dat[-species, ]
+
 # looking at the distribution among resolutions, species greatly outnumbers all others.
 # remove studies where the resolution is higher than species
 higher.res <- which(dat$taxonomic_resolution != "species" & !is.na(dat$taxonomic_resolution))
