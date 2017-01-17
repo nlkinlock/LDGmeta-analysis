@@ -2,40 +2,6 @@
 ##
 #
 
-
-# Load and clean Hillebrand's data to be used in figures ---------------------------------------
-#
-Hillebrand <- gs_title("Hillebrand.csv") #load data from Hillebrand (2004)
-Hil <- gs_read_csv(Hillebrand, ws = "Hillebrand.csv", col_names = TRUE)
-Hil <- as.data.frame(Hil)
-
-# change character (categorical variates) to factor
-for (i in 1:ncol(Hil)) {
-  if (class(Hil[, i]) == "character") {
-    Hil[, i] <- as.factor(Hil[, i])
-  }
-}
-str(Hil)
-
-# moderator analysis of Hillebrand's covariates to compare with ours
-H.orggrp <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + organism_group, data = Hil)
-H.therm <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + thermoregulation, data = Hil)
-H.realm <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + realm, data = Hil)
-H.hab <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + habitat, data = Hil)
-H.hemi <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + hemisphere, data = Hil)
-H.scale <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + scale, data = Hil)
-H.div <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + diversity, data = Hil)
-H.troph <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + trophic_position, data = Hil)
-
-H.table <- data.frame(variate = c(rep(x = "organism_group", length(H.orggrp$b)), rep(x = "thermoregulation", length(H.therm$b)), rep(x = "realm", length(H.realm$b)), rep(x = "habitat", length(H.hab$b)), rep(x = "hemisphere", length(H.hemi$b)), rep(x = "scale", length(H.scale$b)), rep(x = "diversity", length(H.div$b)), rep(x = "trophic_position", length(H.troph$b))),
-                      rz = c(H.orggrp$b, H.therm$b, H.realm$b, H.hab$b, H.hemi$b, H.scale$b, H.div$b, H.troph$b), 
-                      CI.LB = c(H.orggrp$ci.lb, H.therm$ci.lb, H.realm$ci.lb, H.hab$ci.lb, H.hemi$ci.lb, H.scale$ci.lb, H.div$ci.lb, H.troph$ci.lb), 
-                      CI.UB = c(H.orggrp$ci.ub, H.therm$ci.ub, H.realm$ci.ub, H.hab$ci.ub, H.hemi$ci.ub, H.scale$ci.ub, H.div$ci.ub, H.troph$ci.ub),
-                      lab = c(levels(Hil$organism_group), levels(Hil$therm), levels(Hil$realm), levels(Hil$hab), levels(Hil$hemi), levels(Hil$scale), levels(Hil$div), levels(Hil$troph)),
-                      N = c(summary(Hil$organism_group[!is.na(subset.orgrp$organism_group)]), summary(Hil$therm[!is.na(Hil$therm)]), 
-                            summary(Hil$realm[!is.na(Hil$realm)]), summary(Hil$hab[!is.na(Hil$hab)]), summary(Hil$hemi[!is.na(Hil$hemi)]), summary(Hil$scale[!is.na(Hil$scale)]), 
-                            summary(Hil$diversity[!is.na(Hil$diversity)]), summary(Hil$trophic_position[!is.na(Hil$trophic_position)])))
-
 # Visualize covariates with descriptive stats ---------------------------------------
 #
 # plot histograms of all continuous/integer variables
@@ -78,7 +44,8 @@ for (i in 1:nrow(subset.slope)) {
 slope.se <- arrange(subset.slope, -distancese)
 slope.se$index <- c(1:nrow(slope.se))
 slope_forest <- ggplot(data = slope.se, aes(x = slope_b, y = index))  + geom_point(aes(colour = sign), size = 0.1) + geom_errorbarh(aes(xmax = slope_b + SE_b, xmin = slope_b - SE_b, width = 0, colour = sign), size = 0.2) + 
-  scale_colour_manual(values = c("gray45", "indianred3", "dodgerblue3"), guide = FALSE) + ylab("") + xlab("Slope") + coord_cartesian(ylim = c(0, 400)) + theme_classic() + theme(text = element_text(size = 10))
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + scale_colour_manual(values = c("gray45", "indianred3", "dodgerblue3"), guide = FALSE) + 
+  ylab("") + xlab("Slope") + coord_cartesian(ylim = c(0, 400)) + theme_classic() + theme(text = element_text(size = 10))
 print(slope_forest)
 
 SE_rz <- sqrt(dat[, "VarRz"]) / sqrt(dat[, "number_of_points"])
@@ -98,31 +65,34 @@ for (i in 1:nrow(subset.rz)) {
 rz.se <- arrange(subset.rz, -distancerz)
 rz.se$index <- c(1:nrow(rz.se))
 rz_forest <- ggplot(data = rz.se, aes(x = rz, y = index))  + geom_point(aes(colour = sign), size = 0.1) + geom_errorbarh(aes(xmax = rz + SE_rz, xmin = rz - SE_rz, width = 0, colour = sign), size = 0.2) + 
-  scale_colour_manual(values = c("gray45", "indianred3", "dodgerblue3"), guide = FALSE) + ylab("Case") + xlab("z") + coord_cartesian(ylim = c(0, 400)) + theme_classic() + theme(text = element_text(size = 10), axis.title.x = element_text(face = "italic"))
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + scale_colour_manual(values = c("gray45", "indianred3", "dodgerblue3"), guide = FALSE) + 
+  ylab("Case") + xlab("z") + coord_cartesian(ylim = c(0, 400)) + theme_classic() + theme(text = element_text(size = 10), axis.title.x = element_text(face = "italic"))
 print(rz_forest)
 
-tiff(filename = "fig3.tiff", height = 336, width = 514, res = 72)
+pdf(file = "fig3.pdf", height = 3.5, width = 6)
 multiplot(rz_forest, slope_forest, cols = 2)
 dev.off()
 
 # latitude midpoint with SEs
 slope_latmid <- ggplot(data = subset.slope, aes(x = latitude_midpoint, y = logslope))  + geom_point() + geom_errorbar(aes(ymax = logslope + logse, ymin = logslope - logse, width = 0.1)) + 
-  annotate("text", x = -90, y = 5, label = "a", fontface = "bold") + scale_x_continuous(breaks = seq(-90, 90, 20), limits = c(-90, 90)) + ylab("log Slope") + xlab("Latitude midpoint") + theme_classic() + theme(text = element_text(size = 10)) 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + annotate("text", x = -90, y = 5, label = "a", fontface = "bold") + 
+  scale_x_continuous(breaks = seq(-90, 90, 20), limits = c(-90, 90)) + ylab("log Slope") + xlab("Latitude midpoint") + theme_classic() + theme(text = element_text(size = 10)) 
 print(slope_latmid)
 ggsave(plot = slope_latmid, file = paste("slope_latmid.tiff"))
 # longitude midpoint with SEs
 slope_longmid <- ggplot(data = subset.slope, aes(x = longitude_midpoint, y = logslope))  + geom_point() + geom_errorbar(aes(ymax = logslope + logse, ymin = logslope - logse, width = 0.1)) + 
-  annotate("text", x = -180, y = 5, label = "b", fontface = "bold") + scale_x_continuous(breaks = seq(-180, 180, 40), limits = c(-180, 180)) + ylab("log Slope") + xlab("Longitude midpoint") + theme_classic() + theme(text = element_text(size = 10))
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + annotate("text", x = -180, y = 5, label = "b", fontface = "bold") + 
+  scale_x_continuous(breaks = seq(-180, 180, 40), limits = c(-180, 180)) + ylab("log Slope") + xlab("Longitude midpoint") + theme_classic() + theme(text = element_text(size = 10))
 print(slope_longmid)
 ggsave(plot = slope_longmid, file = paste("slope_longmid.tiff"))
 
-tiff(filename = "figED3.tiff", height = 514, width = 336, res = 72)
+pdf(file = "figED2.pdf")
 multiplot(slope_latmid, slope_longmid, cols = 1)
 dev.off()
 
 # slopes grouped by organism, boxplot
 slope.org <- ggplot(data = subset.slope[!is.na(subset.slope$organism_group), ], aes(x = organism_group, y = logslope)) + geom_boxplot() + scale_x_discrete(name="") + 
-  ylab("log Slope") + theme_classic() + theme(text = element_text(size = 10), axis.text.x = element_text(angle = 60, hjust = 1)) 
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + ylab("log Slope") + theme_classic() + theme(text = element_text(size = 10), axis.text.x = element_text(angle = 60, hjust = 1)) 
 print(slope.org)
 ggsave(plot = slope.org, file = paste("slope_org.tiff"))
 
@@ -156,7 +126,7 @@ longmid <- rma(yi = rz, vi = VarRz, mods = ~ longitude_midpoint, data = dat)
 lab.init <- seq(-180, 180, 60)
 lab.long <- c()
 for (i in 1:(length(lab.init) - 1)) {
-lab.long[i] <- paste(lab.init[i], lab.init[i + 1], sep = ", ")
+lab.long[i] <- paste(lab.init[i], lab.init[i + 1], sep = ",")
 }
 dat$region <- as.factor(cut(dat$longitude_midpoint, lab.init, labels = FALSE))
 longreg <- rma(yi = rz, vi = VarRz, mods = ~ - 1 + region, data = dat)
@@ -166,7 +136,10 @@ terrestrial <- rma(yi = rz, vi = VarRz, mods = ~ - 1 + region.ter, data = dat.te
 # marine habitats only
 dat.mar$region.mar <- as.factor(cut(dat.mar$longitude_midpoint, lab.init, labels = FALSE))
 marine <- rma(yi = rz, vi = VarRz, mods = ~ - 1 + region.mar, data = dat.mar)
+dat.marter <- rbind.fill(dat.ter, dat.mar)
 
+marter <- rma(yi = rz, vi = VarRz, mods = ~ -1 + factor(realm), data = dat.marter)
+marter$ci.lb
 
 # table of all single factor regressions used for plots
 tab <- data.frame(variate = c(rep(x = "kingdom", length(king$b)), rep(x = "organism_group", length(orggrp$b)), rep(x = "thermoregulation", length(therm$b)), rep(x = "realm", length(realm$b)), 
@@ -235,31 +208,31 @@ hab.tab$CI.UB <- as.numeric(hab.tab$CI.UB)
 
 
 # create plots with mean effect size (rz) grouped by moderator variates
-div.plot <- ggplot(data = subset(tab, variate == "diversity"), aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + 
+div.plot <- ggplot(data = subset(tab, variate == "diversity"), aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) +
   annotate("text", x = 0.5, y = 0.1, label = "a", fontface = "bold") + geom_text(aes(y = -1.0, label = paste("n = ", N, sep = "")), size = 3) + scale_y_continuous(breaks = seq(-1.0, 0.1, 0.2)) + scale_x_discrete(name = "") + 
   ylab("Effect size (z)") + coord_cartesian(ylim = c(-1.0, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(div.plot)
 ggsave(plot = div.plot, file = paste("mean_ci_rz_div.tiff"))
 
-meas.plot <- ggplot(data = subset(tab, variate == "measure_of_richness"), aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + 
+meas.plot <- ggplot(data = subset(tab, variate == "measure_of_richness"), aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + 
   annotate("text", x = 0.5, y = 0.1, label = "b", fontface = "bold") + geom_text(aes(y = -1.0, label = paste("n = ", N, sep = "")), size = 3)  + scale_y_continuous(breaks = seq(-1.0, 0.1, 0.2)) + scale_x_discrete(name = "") + ylab("Effect size (z)") + 
   coord_cartesian(ylim = c(-1.0, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(meas.plot)
 ggsave(plot = meas.plot, file = paste("mean_ci_rz_meas.tiff"))
 
-therm.plot <- ggplot(data = subset(tab, variate == "thermoregulation"), aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + 
+therm.plot <- ggplot(data = subset(tab, variate == "thermoregulation"), aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + 
   annotate("text", x = 0.5, y = 0.1, label = "c", fontface = "bold") + geom_text(aes(y = -1.0, label = paste("n = ", N, sep = "")), size = 3)  + scale_y_continuous(breaks = seq(-1.0, 0.1, 0.2)) + scale_x_discrete(name = "") + ylab("Effect size (z)") + 
   coord_cartesian(ylim = c(-1.0, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(therm.plot)
 ggsave(plot = therm.plot, file = paste("mean_ci_rz_therm.tiff"))
 
-tiff(filename = "figED4.tiff", pointsize = 10, width = 200)
+pdf(file = "figED3.pdf", width = 3.5, height = 6)
 multiplot(div.plot, meas.plot, therm.plot, cols = 1)
 dev.off()
 
 # Contains realm
 hab.plot <- ggplot(data = hab.subset, aes(x = factor(lab, levels = c("Open ocean", "Benthic", "Coral reefs", "Coastal/estuary", "All marine", "Freshwater", "Forest", "Terrestrial general", "Terrestrial other", "All terrestrial")), y = rz)) + 
-  geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + geom_text(aes(y = -1.65, label = paste("n = ", N, sep = "")), size = 3) +
+  geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + geom_text(aes(y = -1.65, label = paste("n = ", N, sep = "")), size = 3) + geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + 
   annotate("text", x = 0.7, y = 0.5, label = "a", fontface = "bold") + scale_x_discrete(name = "", labels = c("open ocean", "benthic", "coral reef", "coast/est", "all mar", "freshw", "forest", "terr gen", "terr other", "all terr")) + ylab("Effect size (z)") + 
   coord_cartesian(ylim = c(-1.65, 0.5)) + theme_classic() + theme(text = element_text(size = 10)) 
 print(hab.plot)
@@ -267,16 +240,16 @@ ggsave(plot = hab.plot, file = paste("mean_ci_rz_hab.tiff"))
 
 # Contains kingdom
 org.plot <- ggplot(data = org.tab, aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + 
-  geom_text(aes(y = -1.65, label = paste("n = ", N, sep = "")), size = 2) + annotate("text", x = 0.7, y = 0.5, label = "b", fontface = "bold") + 
-  scale_x_discrete(name = "", labels = c("bact", "proto", "herb", "wood", "other pl", "all pl", "fungi", "other inv", "arthro", "fish", "herp", "bird", "mammal", "all ani")) + 
+  geom_text(aes(y = -1.65, label = paste("n = ", N, sep = "")), size = 2) + geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + 
+  annotate("text", x = 0.7, y = 0.5, label = "b", fontface = "bold") + scale_x_discrete(name = "", labels = c("bact", "proto", "herb", "wood", "other pl", "all pl", "fungi", "other inv", "arthro", "fish", "herp", "bird", "mammal", "all ani")) + 
   ylab("Effect size (z)") + coord_cartesian(ylim = c(-1.65, 0.5)) + theme_classic() + theme(text = element_text(size = 10)) 
 print(org.plot)
 ggsave(plot = org.plot, file = paste("mean_ci_rz_org.tiff"))
 
 troph.plot <- ggplot(data = subset(tab, variate == "trophic_position"), aes(x = factor(lab, levels = troph.levels), y = rz))  + 
-  geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + annotate("text", x = 0.7, y = 0.5, label = "c", fontface = "bold") + 
-  geom_text(aes(y = -1.65, label = paste("n = ", N, sep = "")), size = 3)  + scale_x_discrete(name = "") + ylab("Effect size (z)") + 
-  coord_cartesian(ylim = c(-1.65, 0.5)) + theme_classic() + theme(text = element_text(size = 10))
+  geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + 
+  annotate("text", x = 0.7, y = 0.5, label = "c", fontface = "bold") + geom_text(aes(y = -1.65, label = paste("n = ", N, sep = "")), size = 3)  + 
+  scale_x_discrete(name = "") + ylab("Effect size (z)") + coord_cartesian(ylim = c(-1.65, 0.5)) + theme_classic() + theme(text = element_text(size = 10))
 print(troph.plot)
 ggsave(plot = troph.plot, file = paste("mean_ci_rz_troph.tiff"))
 
@@ -288,13 +261,14 @@ habcomp.plot <- ggplot(data = hab.tab, aes(x = rz, y = rz.1)) + geom_point() + g
 print(habcomp.plot)
 ggsave(plot = habcomp.plot, file = paste("mean_ci_rz_habcomp.tiff"))
 
-hemi.plot <- ggplot(data = subset(tab, variate == "hemisphere"), aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + 
+hemi.plot <- ggplot(data = subset(tab, variate == "hemisphere"), aes(x = lab, y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + 
   annotate("text", x = 0.5, y = 0.1, label = "d", fontface = "bold") + geom_text(aes(y = -1.1, label = paste("n = ", N, sep = "")), size = 3) + scale_y_continuous(breaks = seq(-1.0, 0, 0.2)) + 
   scale_x_discrete(name = "Hemisphere") + ylab("Effect size (z)") + coord_cartesian(ylim = c(-1.1, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(hemi.plot)
 ggsave(plot = hemi.plot, file = paste("mean_ci_rz_hemi.tiff"))
 
-longreg.plot <- ggplot(data = subset(tab, variate == "longreg"), aes(x = factor(lab, levels = lab.long), y = rz))  + geom_point() + geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + 
+longreg.plot <- ggplot(data = subset(tab, variate == "longreg"), aes(x = factor(lab, levels = lab.long), y = rz))  + geom_point() + 
+  geom_errorbar(aes(ymax = CI.UB, ymin = CI.LB, width = 0.1)) + geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) +
   annotate("text", x = 1, y = 0.1, label = "b", fontface = "bold") + geom_text(aes(y = -1.1, label = paste("n = ", N, sep = "")), size = 3) + scale_y_continuous(breaks = seq(-1.0, 0.2, 0.2)) + 
   scale_x_discrete(name = "Longitude midpoint") + ylab("Effect size (z)") + coord_cartesian(ylim = c(-1.1, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(longreg.plot)
@@ -309,8 +283,9 @@ ggsave(plot = mar.ter.plot, file = paste("mean_ci_rz_marter.tiff"))
 tab.longmid <- print.list.rma(predict.rma(longmid))
 tab.longmid <- data.frame(tab.longmid, longitude = dat$longitude_midpoint[which(!is.na(dat$longitude_midpoint), arr.ind = TRUE)])
 longmid.plot <- ggplot(tab.longmid, aes(x = longitude, y = pred)) + geom_line() + geom_line(aes(x = longitude, y = ci.lb), linetype = "dashed") + 
-  geom_line(aes(x = longitude, y = ci.ub), linetype = "dashed") + geom_rug(sides = "b") + ylab("Effect size (z)") + xlab("Longitude midpoint") + 
-  scale_x_continuous(breaks = seq(-180, 180, 40), limits = c(-180, 180)) + ylim(c(-1.6, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) +  geom_line(aes(x = longitude, y = ci.ub), linetype = "dashed") + 
+  geom_rug(sides = "b") + ylab("Effect size (z)") + xlab("Longitude midpoint") + scale_x_continuous(breaks = seq(-180, 180, 40), limits = c(-180, 180)) + 
+  ylim(c(-1.6, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(longmid.plot)
 ggsave(plot = longmid.plot, file = paste("mean_ci_rz_longmid.tiff"))
 
@@ -318,18 +293,18 @@ longmid2 <- rma(yi = rz, vi = VarRz, mods = ~ longitude_midpoint + I(longitude_m
 tab.longmid2 <- print.list.rma(predict.rma(longmid2))
 tab.longmid2 <- data.frame(tab.longmid2, longitude = dat$longitude_midpoint[which(!is.na(dat$longitude_midpoint), arr.ind = TRUE)])
 longmid.plot2 <- ggplot(tab.longmid2, aes(x = longitude, y = pred)) + geom_line() + geom_line(aes(x = longitude, y = ci.lb), linetype = "dashed") + 
-  geom_line(aes(x = longitude, y = ci.ub), linetype = "dashed") + geom_rug(sides = "b") + ylab("Effect size (z)") + xlab("Longitude midpoint") + 
-  annotate("text", x = -180, y = 0.1, label = "a", fontface = "bold") + scale_x_continuous(breaks = seq(-180, 180, 40), limits = c(-180, 180)) + ylim(c(-1.6, 0.1)) + 
-  theme_classic() + theme(text = element_text(size = 10))
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) +  geom_line(aes(x = longitude, y = ci.ub), linetype = "dashed") + 
+  geom_rug(sides = "b") + ylab("Effect size (z)") + xlab("Longitude midpoint") + annotate("text", x = -180, y = 0.1, label = "a", fontface = "bold") + 
+  scale_x_continuous(breaks = seq(-180, 180, 40), limits = c(-180, 180)) + ylim(c(-1.6, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(longmid.plot2)
 ggsave(plot = longmid.plot2, file = paste("mean_ci_rz_longmid2.tiff"))
 
 tab.latmid <- print.list.rma(predict.rma(latmid))
 tab.latmid <- data.frame(tab.latmid, latitude = dat$latitude_midpoint[which(!is.na(dat$latitude_midpoint), arr.ind = TRUE)])
 latmid.plot <- ggplot(tab.latmid, aes(x = latitude, y = pred)) + geom_line() + geom_line(aes(x = latitude, y = ci.lb), linetype = "dashed") + 
-  annotate("text", x = -90, y = 0.1, label = "c", fontface = "bold") + geom_line(aes(x = latitude, y = ci.ub), linetype = "dashed") + geom_rug(sides = "b") + 
-  ylab("Effect size (z)") + xlab("Latitude midpoint") + scale_x_continuous(breaks = seq(-90, 90, 20), limits = c(-90, 90)) + ylim(c(-1.6, 0.1)) + 
-  theme_classic() + theme(text = element_text(size = 10))
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + annotate("text", x = -90, y = 0.1, label = "c", fontface = "bold") + 
+  geom_line(aes(x = latitude, y = ci.ub), linetype = "dashed") + geom_rug(sides = "b") + ylab("Effect size (z)") + xlab("Latitude midpoint") + 
+  scale_x_continuous(breaks = seq(-90, 90, 20), limits = c(-90, 90)) + ylim(c(-1.6, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(latmid.plot)
 ggsave(plot = latmid.plot, file = paste("mean_ci_rz_latmid.tiff"))
 
@@ -337,16 +312,18 @@ ggsave(plot = latmid.plot, file = paste("mean_ci_rz_latmid.tiff"))
 tab.latrange <- print.list.rma(predict.rma(latrange))
 tab.latrange <- data.frame(tab.latrange, latitude = dat$latitude_range[which(!is.na(dat$latitude_range), arr.ind = TRUE)])
 latrange.plot <- ggplot(tab.latrange, aes(x = latitude, y = pred)) + geom_line() + geom_line(aes(x = latitude, y = ci.lb), linetype = "dashed") + 
-  geom_line(aes(x = latitude, y = ci.ub), linetype = "dashed") + geom_rug(sides = "b") + ylab("Effect size (z)") + xlab("Latitude range") + 
-  scale_x_continuous(breaks = seq(0, 180, 20), limits = c(0, 180)) + ylim(c(-1.6, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + geom_line(aes(x = latitude, y = ci.ub), linetype = "dashed") + 
+  geom_rug(sides = "b") + ylab("Effect size (z)") + xlab("Latitude range") + scale_x_continuous(breaks = seq(0, 180, 20), limits = c(0, 180)) + 
+  ylim(c(-1.6, 0.1)) + theme_classic() + theme(text = element_text(size = 10))
 print(latrange.plot)
 ggsave(plot = latrange.plot, file = paste("mean_ci_rz_latrange.tiff"))
 
-tiff(filename = "fig1.tiff", height = 514, width = 514, res = 72)
+
+pdf(file = "fig1.pdf")
 multiplot(longmid.plot2, longreg.plot, latmid.plot, hemi.plot, layout = matrix(c(1, 2, 3, 4), nrow = 2, byrow = TRUE))
 dev.off()
 
-tiff(filename = "fig2.tiff", pointsize = 10, width = 454)
+pdf(file = "fig2.pdf")
 multiplot(hab.plot, org.plot, troph.plot, cols = 1)
 dev.off()
 

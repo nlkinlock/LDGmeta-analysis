@@ -11,6 +11,39 @@
 ##
 #
 
+# Load and clean Hillebrand's data to be used in figures ---------------------------------------
+#
+Hillebrand <- gs_title("Hillebrand.csv") #load data from Hillebrand (2004)
+Hil <- gs_read_csv(Hillebrand, ws = "Hillebrand.csv", col_names = TRUE)
+Hil <- as.data.frame(Hil)
+
+# change character (categorical variates) to factor
+for (i in 1:ncol(Hil)) {
+  if (class(Hil[, i]) == "character") {
+    Hil[, i] <- as.factor(Hil[, i])
+  }
+}
+str(Hil)
+
+# moderator analysis of Hillebrand's covariates to compare with ours
+H.orggrp <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + organism_group, data = Hil)
+H.therm <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + thermoregulation, data = Hil)
+H.realm <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + realm, data = Hil)
+H.hab <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + habitat, data = Hil)
+H.hemi <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + hemisphere, data = Hil)
+H.scale <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + scale, data = Hil)
+H.div <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + diversity, data = Hil)
+H.troph <- rma(yi = Rz, vi = VarRz, mods = ~ -1 + trophic_position, data = Hil)
+
+H.table <- data.frame(variate = c(rep(x = "organism_group", length(H.orggrp$b)), rep(x = "thermoregulation", length(H.therm$b)), rep(x = "realm", length(H.realm$b)), rep(x = "habitat", length(H.hab$b)), rep(x = "hemisphere", length(H.hemi$b)), rep(x = "scale", length(H.scale$b)), rep(x = "diversity", length(H.div$b)), rep(x = "trophic_position", length(H.troph$b))),
+                      rz = c(H.orggrp$b, H.therm$b, H.realm$b, H.hab$b, H.hemi$b, H.scale$b, H.div$b, H.troph$b), 
+                      CI.LB = c(H.orggrp$ci.lb, H.therm$ci.lb, H.realm$ci.lb, H.hab$ci.lb, H.hemi$ci.lb, H.scale$ci.lb, H.div$ci.lb, H.troph$ci.lb), 
+                      CI.UB = c(H.orggrp$ci.ub, H.therm$ci.ub, H.realm$ci.ub, H.hab$ci.ub, H.hemi$ci.ub, H.scale$ci.ub, H.div$ci.ub, H.troph$ci.ub),
+                      lab = c(levels(Hil$organism_group), levels(Hil$therm), levels(Hil$realm), levels(Hil$hab), levels(Hil$hemi), levels(Hil$scale), levels(Hil$div), levels(Hil$troph)),
+                      N = c(summary(Hil$organism_group[!is.na(subset.orgrp$organism_group)]), summary(Hil$therm[!is.na(Hil$therm)]), 
+                            summary(Hil$realm[!is.na(Hil$realm)]), summary(Hil$hab[!is.na(Hil$hab)]), summary(Hil$hemi[!is.na(Hil$hemi)]), summary(Hil$scale[!is.na(Hil$scale)]), 
+                            summary(Hil$diversity[!is.na(Hil$diversity)]), summary(Hil$trophic_position[!is.na(Hil$trophic_position)])))
+
 # slope is not an appropriate effect size because of the non-normally distributed residuals
 global.slope.init <- rma(yi = slope_b, vi = Var_b, data = dat)
 plot(residuals.rma(global.slope.init))
@@ -19,6 +52,14 @@ hist(residuals.rma(global.slope.init))
 # correlation coefficient - Fisher's z (rz)
 global.init <- rma(yi = rz, vi = VarRz, data = dat)
 summary(global.init)
+
+Hil.combine <- data.frame(Paper = Hil$paper, rz = Hil$Rz, VarRz = Hil$VarRz)
+Kin.combine <- data.frame(Paper = dat$id, rz = dat$rz, VarRz = dat$VarRz)
+combined <- rbind(Hil.combine, Kin.combine)
+global.combined <- rma(yi = rz, vi = VarRz, data = combined)
+summary(global.combined)
+
+# Fisher's z global mean INCLUDING our cases and Hillebrand's cases
 
 # outlier tests
 # global.inf <- influence(global.init)
