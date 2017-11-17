@@ -255,6 +255,7 @@ candidateset <- glmulti(rz ~ kingdom + realm + longitude_range + longitude_midpo
 # candidateset <- glmulti(rz ~ kingdom + realm + longitude_range + sin((longitude_midpoint + 180) * (pi/180)) + cos((longitude_midpoint + 180) * (pi/180)) + latitude_range + latitude_midpoint + diversity + measure_of_richness, V = "VarRz", random = "rand", data = dat, level = 1, method = "d", fitfunction = rma.glmulti, crit = "aicc")
 # run glmulti with meta regression function
 models <- glmulti(rz ~ kingdom + realm + longitude_range + longitude_midpoint + I(longitude_midpoint^2) + latitude_range + latitude_midpoint + diversity + measure_of_richness, V = "VarRz", random = "rand", data = dat, level = 1, method = "h", fitfunction = rma.glmulti, crit = "aicc", confsetsize = candidateset)
+randomonly <- rma.mv(yi = rz, V = VarRz, random = rand, data = dat)
 # models <- glmulti(rz ~ kingdom + realm + longitude_range + sin((longitude_midpoint + 180) * (pi/180)) + cos((longitude_midpoint + 180) * (pi/180)) + latitude_range + latitude_midpoint + diversity + measure_of_richness, V = "VarRz", random = "rand", data = dat, level = 1, method = "h", fitfunction = rma.glmulti, crit = "aicc", confsetsize = candidateset)
 print(models)
 # AICc and weights of models within 5 units of the best model
@@ -274,17 +275,30 @@ weights <- round(coef.glmulti(models, select = nrow(rank.models), icmethod = "Bu
 weights <- weights[, c(1, 4, 5)]
 weights
 
-# conditional R2 GLMM describes proportion of variance in the data explained by both the fixed and random factors in the mixed model (Nakagawa and Schielzeth 2013)
-r2c <- c()
+
+marg.r2 <- c()
+cond.r2 <- c()
 for (i in 1:nrow(rank.models)) {
-  fixrand <- (models@objects[[i]]$tau2 + sum(models@objects[[i]]$sigma2))  # tau (between groups variance) is from fixed effects and sigma2 is from each random effect
-  wi <- weights.rma.mv(models@objects[[i]])  # inverse of the sampling variance
-  s2 <- ((models@objects[[i]]$k - 1) * sum(wi, na.rm = TRUE)) / (sum(wi, na.rm = TRUE)^2  - sum(wi^2, na.rm = TRUE))
-  r2c[i] <- fixrand / (fixrand + s2)
+  # marginal and conditional R2 for linear mixed-models from Nakagawa and Scheilzeth 2013
+  # variance from fixed effects
+  fe.total <- c()
+  for (j in 2:ncol(model.matrix(models@objects[[i]]))) {
+    fe <- models@objects[[i]]$b[j] * model.matrix(models@objects[[i]])[, j] 
+    fe.total <- c(fe.total, fe)
+  }
+  v.fix <- var(fe.total)
+  # variance from random effects
+  v.rand <- sum(models@objects[[i]]$sigma2)
+  # variance from residuals
+  v.resid <- var(residuals(models@objects[[i]]))
+  # marginal R2 - total variance explained from fixed effects
+  marg.r2[i] <- v.fix / (v.fix + v.rand + v.resid)
+  # conditional R2 - total variance explained from fixed and random effects
+  cond.r2[i] <- (v.fix + v.rand) / (v.fix + v.rand + v.resid)
 }
-r2c
-mean(r2c) # summarize R2 for all equivalent models
-sqrt(var(r2c) / length(r2c))
+mean(cond.r2) # summarize R2 for all equivalent models
+sqrt(var(cond.r2) / length(cond.r2))
+
 
 # save output to file
 models.output <- summary(models)
@@ -312,17 +326,31 @@ terweights <- round(coef.glmulti(ter.models, select = nrow(ter.rank), icmethod =
 terweights <- terweights[, c(1, 4, 5)]
 terweights
 
-# conditional R2 GLMM
-ter.r2c <- c()
+
+marg.r2.ter <- c()
+cond.r2.ter <- c()
 for (i in 1:nrow(ter.rank)) {
-  fixrand <- (ter.models@objects[[i]]$tau2 + sum(ter.models@objects[[i]]$sigma2))
-  wi <- weights.rma.mv(ter.models@objects[[i]])
-  s2 <- ((ter.models@objects[[i]]$k - 1) * sum(wi, na.rm = TRUE)) / (sum(wi, na.rm = TRUE)^2  - sum(wi^2, na.rm = TRUE))
-  ter.r2c[i] <- fixrand / (fixrand + s2)
+  # marginal and conditional R2 for linear mixed-models from Nakagawa and Scheilzeth 2013
+  # variance from fixed effects
+  fe.total <- c()
+  for (j in 2:ncol(model.matrix(ter.models@objects[[i]]))) {
+    fe <- ter.models@objects[[i]]$b[j] * model.matrix(ter.models@objects[[i]])[, j] 
+    fe.total <- c(fe.total, fe)
+  }
+  v.fix <- var(fe.total)
+  # variance from random effects
+  v.rand <- sum(ter.models@objects[[i]]$sigma2)
+  # variance from residuals
+  v.resid <- var(residuals(ter.models@objects[[i]]))
+  # marginal R2 - total variance explained from fixed effects
+  marg.r2.ter[i] <- v.fix / (v.fix + v.rand + v.resid)
+  # conditional R2 - total variance explained from fixed and random effects
+  cond.r2.ter[i] <- (v.fix + v.rand) / (v.fix + v.rand + v.resid)
 }
-ter.r2c
-mean(ter.r2c)
-sqrt(var(ter.r2c) / length(ter.r2c))
+mean(cond.r2.ter) # summarize R2 for all equivalent models
+sqrt(var(cond.r2.ter) / length(cond.r2.ter))
+
+
 # save output
 ter.output <- summary(ter.models)
 ter.output.coef <- round(coef(ter.models), 4)
@@ -349,17 +377,29 @@ marweights <- round(coef.glmulti(mar.models, select = nrow(mar.rank), icmethod =
 marweights <- marweights[, c(1, 4, 5)]
 marweights
 
-# conditional R2 GLMM
-mar.r2c <- c()
+marg.r2.mar <- c()
+cond.r2.mar <- c()
 for (i in 1:nrow(mar.rank)) {
-  fixrand <- (mar.models@objects[[i]]$tau2 + sum(mar.models@objects[[i]]$sigma2))
-  wi <- weights.rma.mv(mar.models@objects[[i]])
-  s2 <- ((mar.models@objects[[i]]$k - 1) * sum(wi, na.rm = TRUE)) / (sum(wi, na.rm = TRUE)^2  - sum(wi^2, na.rm = TRUE))
-  mar.r2c[i] <- fixrand / (fixrand + s2)
+  # marginal and conditional R2 for linear mixed-models from Nakagawa and Scheilzeth 2013
+  # variance from fixed effects
+  fe.total <- c()
+  for (j in 2:ncol(model.matrix(mar.models@objects[[i]]))) {
+    fe <- mar.models@objects[[i]]$b[j] * model.matrix(mar.models@objects[[i]])[, j] 
+    fe.total <- c(fe.total, fe)
+  }
+  v.fix <- var(fe.total)
+  # variance from random effects
+  v.rand <- sum(mar.models@objects[[i]]$sigma2)
+  # variance from residuals
+  v.resid <- var(residuals(mar.models@objects[[i]]))
+  # marginal R2 - total variance explained from fixed effects
+  marg.r2.mar[i] <- v.fix / (v.fix + v.rand + v.resid)
+  # conditional R2 - total variance explained from fixed and random effects
+  cond.r2.mar[i] <- (v.fix + v.rand) / (v.fix + v.rand + v.resid)
 }
-mar.r2c
-mean(mar.r2c)
-sqrt(var(mar.r2c) / length(mar.r2c))
+mean(cond.r2.mar) # summarize R2 for all equivalent models
+sqrt(var(cond.r2.mar) / length(cond.r2.mar))
+
 # save output
 mar.output <- summary(mar.models)
 mar.output.coef <- round(coef(mar.models), 4)
@@ -389,17 +429,30 @@ aniweights <- round(coef.glmulti(ani.models, select = nrow(ani.rank), icmethod =
 aniweights <- aniweights[, c(1, 4, 5)]
 aniweights
 
- # conditional R2 GLMM
-ani.r2c <- c()
+
+marg.r2.ani <- c()
+cond.r2.ani <- c()
 for (i in 1:nrow(ani.rank)) {
-  fixrand <- (ani.models@objects[[i]]$tau2 + sum(ani.models@objects[[i]]$sigma2))
-  wi <- weights.rma.mv(ani.models@objects[[i]])
-  s2 <- ((ani.models@objects[[i]]$k - 1) * sum(wi)) / (sum(wi)^2  - sum(wi^2))
-  ani.r2c[i] <- fixrand / (fixrand + s2)
+  # marginal and conditional R2 for linear mixed-models from Nakagawa and Scheilzeth 2013
+  # variance from fixed effects
+  fe.total <- c()
+  for (j in 2:ncol(model.matrix(ani.models@objects[[i]]))) {
+    fe <- ani.models@objects[[i]]$b[j] * model.matrix(ani.models@objects[[i]])[, j] 
+    fe.total <- c(fe.total, fe)
+  }
+  v.fix <- var(fe.total)
+  # variance from random effects
+  v.rand <- sum(ani.models@objects[[i]]$sigma2)
+  # variance from residuals
+  v.resid <- var(residuals(ani.models@objects[[i]]))
+  # marginal R2 - total variance explained from fixed effects
+  marg.r2.ani[i] <- v.fix / (v.fix + v.rand + v.resid)
+  # conditional R2 - total variance explained from fixed and random effects
+  cond.r2.ani[i] <- (v.fix + v.rand) / (v.fix + v.rand + v.resid)
 }
-ani.r2c
-mean(ani.r2c)
-sqrt(var(ani.r2c) / length(ani.r2c))
+mean(cond.r2.ani) # summarize R2 for all equivalent models
+sqrt(var(cond.r2.ani) / length(cond.r2.ani))
+
 # save output
 ani.output <- summary(ani.models)
 ani.output.coef <- round(coef(ani.models), 4)
@@ -427,17 +480,30 @@ plaweights <- round(coef.glmulti(pla.models, select = nrow(pla.rank), icmethod =
 plaweights <- plaweights[, c(1, 4, 5)]
 plaweights
 
-# conditional R2 GLMM
-pla.r2c <- c()
+
+marg.r2.pla <- c()
+cond.r2.pla <- c()
 for (i in 1:nrow(pla.rank)) {
-  fixrand <- (pla.models@objects[[i]]$tau2 + sum(pla.models@objects[[i]]$sigma2))
-  wi <- weights.rma.mv(pla.models@objects[[i]])
-  s2 <- ((pla.models@objects[[i]]$k - 1) * sum(wi)) / (sum(wi)^2  - sum(wi^2))
-  pla.r2c[i] <- fixrand / (fixrand + s2)
+  # marginal and conditional R2 for linear mixed-models from Nakagawa and Scheilzeth 2013
+  # variance from fixed effects
+  fe.total <- c()
+  for (j in 2:ncol(model.matrix(pla.models@objects[[i]]))) {
+    fe <- pla.models@objects[[i]]$b[j] * model.matrix(pla.models@objects[[i]])[, j] 
+    fe.total <- c(fe.total, fe)
+  }
+  v.fix <- var(fe.total)
+  # variance from random effects
+  v.rand <- sum(pla.models@objects[[i]]$sigma2)
+  # variance from residuals
+  v.resid <- var(residuals(pla.models@objects[[i]]))
+  # marginal R2 - total variance explained from fixed effects
+  marg.r2.pla[i] <- v.fix / (v.fix + v.rand + v.resid)
+  # conditional R2 - total variance explained from fixed and random effects
+  cond.r2.pla[i] <- (v.fix + v.rand) / (v.fix + v.rand + v.resid)
 }
-pla.r2c
-mean(pla.r2c)
-sqrt(var(pla.r2c) / length(pla.r2c))
+mean(cond.r2.pla) # summarize R2 for all equivalent models
+sqrt(var(cond.r2.pla) / length(cond.r2.pla))
+
 # save output
 pla.output <- summary(pla.models)
 pla.output.coef <- round(coef(pla.models), 4)
@@ -472,17 +538,28 @@ rank.H
 H.weights <- round(coef.glmulti(H, select = nrow(rank.H), icmethod = "Burnham"), 7)
 H.weights
 
-# conditional R2 GLMM describes proportion of variance in the data explained by both the fixed and random factors in the mixed model (Nakagawa and Schielzeth 2013)
-r2c <- c()
+marg.r2.H <- c()
+cond.r2.H <- c()
 for (i in 1:nrow(rank.H)) {
-  fixrand <- (H@objects[[i]]$tau2 + sum(H@objects[[i]]$sigma2))  # tau (between groups variance) is from fixed effects and sigma2 is from each random effect
-  wi <- weights.rma.mv(H@objects[[i]])  # inverse of the sampling variance
-  s2 <- ((H@objects[[i]]$k - 1) * sum(wi, na.rm = TRUE)) / (sum(wi, na.rm = TRUE)^2  - sum(wi^2, na.rm = TRUE))
-  r2c[i] <- fixrand / (fixrand + s2)
+  # marginal and conditional R2 for linear mixed-models from Nakagawa and Scheilzeth 2013
+  # variance from fixed effects
+  fe.total <- c()
+  for (j in 2:ncol(model.matrix(H@objects[[i]]))) {
+    fe <- H@objects[[i]]$b[j] * model.matrix(H@objects[[i]])[, j] 
+    fe.total <- c(fe.total, fe)
+  }
+  v.fix <- var(fe.total)
+  # variance from random effects
+  v.rand <- sum(H@objects[[i]]$sigma2)
+  # variance from residuals
+  v.resid <- var(residuals(H@objects[[i]]))
+  # marginal R2 - total variance explained from fixed effects
+  marg.r2.H[i] <- v.fix / (v.fix + v.rand + v.resid)
+  # conditional R2 - total variance explained from fixed and random effects
+  cond.r2.H[i] <- (v.fix + v.rand) / (v.fix + v.rand + v.resid)
 }
-r2c
-mean(r2c) # summarize R2 for all equivalent models
-sqrt(var(r2c) / length(r2c))
+mean(cond.r2.H) # summarize R2 for all equivalent models
+sqrt(var(cond.r2.H) / length(cond.r2.H))
 
 # save output to file
 H.output <- summary(H)
@@ -491,6 +568,9 @@ H.output.weights <- H.weights
 write.csv(H.output, file = "H_models.csv")
 write.csv(H.output.coef, file = "H_coef.csv")
 write.csv(H.output.weights, file = "H_weights.csv")
+
+
+
 
 
 

@@ -5,7 +5,7 @@
 # Adding/removing columns ---------------------------------------
 
 # remove comment columns, extent, and grain
-dat <- dat.init[, -c(1, 4, 7, 10, 16, 18, 21, 22, 25, 26, 27, 28, 41, 42)]
+dat <- dat.init[, -c(1, 7, 10, 16, 18, 21, 22, 25, 26, 27, 28, 41, 42)]
 # sum of NAs in each column (i.e. how complete is the column?)
 colSums(is.na(dat[]))
 
@@ -115,8 +115,8 @@ dat$diversity <- as.factor(dat$diversity)
 str(dat)
 
 # save cleaned data frame
-write.csv(dat, file = "cleaned_data_complete.csv")
-
+# write.csv(dat, file = "cleaned_data_complete.csv")
+# write.csv(dat, file = "full_data_complete.csv")
 
 
 

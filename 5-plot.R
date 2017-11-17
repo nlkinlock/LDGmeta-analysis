@@ -26,46 +26,36 @@
 # however, descriptive stats of slope are useful
 # distribution
 subset.slope <- subset(dat, select = c(slope_b, SE_b, latitude_midpoint, longitude_midpoint, organism_group))
-subset.slope$logslope <- log(subset.slope$slope_b)
-subset.slope$logse <- log(subset.slope$SE_b)
 subset.slope <- subset.slope[-which(is.na(subset.slope$SE_b) | subset.slope$SE_b > 100),]
-subset.slope$distance <- abs(subset.slope$slope_b)
+subset.slope$ll <- subset.slope$slope_b - subset.slope$SE_b
+subset.slope$ul <- subset.slope$slope_b + subset.slope$SE_b
 subset.slope$overlap <- ifelse((subset.slope$slope_b + subset.slope$SE_b) * (subset.slope$slope_b - subset.slope$SE_b) > 0, 1, 0)
-subset.slope$pos <- ifelse(subset.slope$overlap & subset.slope$slope_b > 0, 1, 0)
+subset.slope$pos <- ifelse(subset.slope$overlap > 0 & subset.slope$slope_b > 0, 1, 0)
 subset.slope$neg <- ifelse(subset.slope$overlap > 0 & subset.slope$slope_b < 0, 2, 0)
 subset.slope$sign <- as.factor(subset.slope$pos + subset.slope$neg)
-for (i in 1:nrow(subset.slope)) {
-  if (subset.slope$sign[i] == 0) {
-  subset.slope$distancese[i] <- ifelse(subset.slope$slope_b[i] > 0, abs(subset.slope$slope_b[i] - subset.slope$SE_b[i]), abs(subset.slope$slope_b[i] + subset.slope$SE_b[i]))
-} else {
-  subset.slope$distancese[i] <- ifelse(subset.slope$slope_b[i] > 0, -abs(subset.slope$slope_b[i] - subset.slope$SE_b[i]), -abs(subset.slope$slope_b[i] + subset.slope$SE_b[i]))
-}
-}
-slope.se <- arrange(subset.slope, -distancese)
+subset.slope$distancese <- ifelse(subset.slope$slope_b > 0, abs(subset.slope$ll), abs(subset.slope$ul))
+subset.slope$distancese[which(subset.slope$sign == 0)] <- 0
+slope.se <- arrange(subset.slope, distancese)
 slope.se$index <- c(1:nrow(slope.se))
-slope_forest <- ggplot(data = slope.se, aes(x = slope_b, y = index))  + geom_point(aes(colour = sign), size = 0.1) + geom_errorbarh(aes(xmax = slope_b + SE_b, xmin = slope_b - SE_b, width = 0, colour = sign), size = 0.2) + 
-  geom_vline(xintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + scale_colour_manual(values = c("gray45", "indianred3", "dodgerblue3"), guide = FALSE) + 
+slope_forest <- ggplot(data = slope.se, aes(x = slope_b, y = index))  + geom_point(aes(colour = sign), size = 0.1) + geom_errorbarh(aes(xmax = ul, xmin = ll, colour = sign), size = 0.2) + 
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + scale_colour_manual(values = c("gray75", "black", "black"), guide = FALSE) + 
   ylab("") + xlab("Slope") + coord_cartesian(ylim = c(0, 400)) + theme_classic() + theme(text = element_text(size = 12))
 print(slope_forest)
 
 SE_rz <- sqrt(dat[, "VarRz"]) / sqrt(dat[, "number_of_points"])
 subset.rz <- data.frame(rz = dat$rz, se = SE_rz)
-subset.rz$distance <- abs(subset.rz$rz)
-subset.rz$overlap <- ifelse((subset.rz$rz + subset.rz$se) * (subset.rz$rz - subset.rz$se) > 0, 1, 0)
-subset.rz$pos <- ifelse(subset.rz$overlap & subset.rz$rz > 0, 1, 0)
+subset.rz$ll <- subset.rz$rz - subset.rz$se
+subset.rz$ul <- subset.rz$rz + subset.rz$se
+subset.rz$overlap <- ifelse(subset.rz$ll * subset.rz$ul > 0, 1, 0)
+subset.rz$pos <- ifelse(subset.rz$overlap > 0 & subset.rz$rz > 0, 1, 0)
 subset.rz$neg <- ifelse(subset.rz$overlap > 0 & subset.rz$rz < 0, 2, 0)
 subset.rz$sign <- as.factor(subset.rz$pos + subset.rz$neg)
-for (i in 1:nrow(subset.rz)) {
-  if (subset.rz$sign[i] == 0) {
-    subset.rz$distancerz[i] <- ifelse(subset.rz$rz[i] > 0, abs(subset.rz$rz[i] - subset.rz$se[i]), abs(subset.rz$rz[i] + subset.rz$se[i]))
-  } else {
-    subset.rz$distancerz[i] <- ifelse(subset.rz$rz[i] > 0, -abs(subset.rz$rz[i] - subset.rz$se[i]), -abs(subset.rz$rz[i] + subset.rz$se[i]))
-  }
-}
-rz.se <- arrange(subset.rz, -distancerz)
+subset.rz$distancerz <- ifelse(subset.rz$rz > 0, abs(subset.rz$ll), abs(subset.rz$ul))
+subset.rz$distancerz[which(subset.rz$sign == 0)] <- 0
+rz.se <- arrange(subset.rz, distancerz)
 rz.se$index <- c(1:nrow(rz.se))
-rz_forest <- ggplot(data = rz.se, aes(x = rz, y = index))  + geom_point(aes(colour = sign), size = 0.1) + geom_errorbarh(aes(xmax = rz + SE_rz, xmin = rz - SE_rz, width = 0, colour = sign), size = 0.2) + 
-  geom_vline(xintercept = 0, linetype = "dashed", color = "gray65", size = 0.2) + scale_colour_manual(values = c("gray45", "indianred3", "dodgerblue3"), guide = FALSE) + 
+rz_forest <- ggplot(data = rz.se, aes(x = rz, y = index))  + geom_point(aes(colour = sign), size = 0.1) + geom_errorbarh(aes(xmax = ul, xmin = ll, colour = sign), size = 0.2) + 
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray25", size = 0.2) + scale_colour_manual(values = c("gray75", "black", "black"), guide = FALSE) + 
   ylab("Case") + xlab("z") + coord_cartesian(ylim = c(0, 400)) + theme_classic() + theme(text = element_text(size = 12), axis.title.x = element_text(face = "italic"))
 print(rz_forest)
 
